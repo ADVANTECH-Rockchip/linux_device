@@ -3,15 +3,15 @@
 # Target arch
 export RK_ARCH=arm
 # Uboot defconfig
-export RK_UBOOT_DEFCONFIG=fennec-rk3288
+export RK_UBOOT_DEFCONFIG=rsb4680a3-2G-rk3288
 # Kernel defconfig
-export RK_KERNEL_DEFCONFIG=rockchip_linux_defconfig
+export RK_KERNEL_DEFCONFIG=rk3288_adv_defconfig
 # Kernel dts
-export RK_KERNEL_DTS=rk3288-evb-rk808-linux
+export RK_KERNEL_DTS=rk3288-rsb4680-a3
 # boot image type
 export RK_BOOT_IMG=zboot.img
 # parameter for GPT table
-export RK_PARAMETER=parameter-buildroot.txt
+export RK_PARAMETER=parameter-debian.txt
 # Buildroot config
 export RK_CFG_BUILDROOT=rockchip_rk3288
 # Recovery config
