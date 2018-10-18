@@ -37,6 +37,19 @@ else
 	fi
 fi
 
+# debug flag
+DEBUG_FLAG=$TOP_DIR/buildroot/output/$RK_CFG_RECOVERY/target/
+if [ ! -d $DEBUG_FLAG ];then
+	mkdir -p $DEBUG_FLAG
+fi
+
+if [ ! -f $DEBUG_FLAG/.rkdebug ];then
+	echo "creat $DEBUG_FLAG !"
+	touch $DEBUG_FLAG/.rkdebug
+else
+	echo "$DEBUG_FLAG Already exist!"
+fi
+
 source $TOP_DIR/buildroot/build/envsetup.sh $RK_CFG_RECOVERY
 RAMDISK_IMAGE=$TOP_DIR/buildroot/output/$RK_CFG_RECOVERY/images/rootfs.cpio.gz
 RECOVERY_IMAGE=$TOP_DIR/buildroot/output/$RK_CFG_RECOVERY/images/recovery.img
