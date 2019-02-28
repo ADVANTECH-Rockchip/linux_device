@@ -10,12 +10,16 @@ export RK_KERNEL_DEFCONFIG=rockchip_linux_defconfig
 export RK_KERNEL_DTS=px3se-evb
 # boot image type
 export RK_BOOT_IMG=zboot.img
+# kernel image path
+export RK_KERNEL_IMG=kernel/arch/arm/boot/zImage
 # parameter for GPT table
 export RK_PARAMETER=parameter-nand.txt
 # Buildroot config
 export RK_CFG_BUILDROOT=rockchip_px3se
 # Recovery config
 export RK_CFG_RECOVERY=rockchip_px3se_recovery
+# ramboot config
+export RK_CFG_RAMBOOT=
 # Pcba config
 export RK_CFG_PCBA=rockchip_px3se_pcba
 # Build jobs
@@ -32,7 +36,11 @@ export RK_OEM_FS_TYPE=ext2
 export RK_USERDATA_FS_TYPE=ext2
 # Set flash type. support <emmc, nand, spi_nand, spi_nor>
 export RK_STORAGE_TYPE=nand
-#OEM config: /oem/dueros/aispeech/iflytekSDK/CaeDemo_VAD/smart_voice
+#OEM config
 export RK_OEM_DIR=oem_empty
 #userdata config
 export RK_USERDATA_DIR=userdata_empty
+#misc image
+export RK_MISC=wipe_all-misc.img
+#choose enable distro module
+export RK_DISTRO_MODULE=

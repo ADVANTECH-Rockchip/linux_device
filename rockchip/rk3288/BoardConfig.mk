@@ -10,12 +10,16 @@ export RK_KERNEL_DEFCONFIG=rk3288_adv_defconfig
 export RK_KERNEL_DTS=rk3288-rsb4680-a3
 # boot image type
 export RK_BOOT_IMG=zboot.img
+# kernel image path
+export RK_KERNEL_IMG=kernel/arch/arm/boot/zImage
 # parameter for GPT table
 export RK_PARAMETER=parameter-debian.txt
 # Buildroot config
-export RK_CFG_BUILDROOT=rockchip_rk3288
+export RK_CFG_BUILDROOT=rockchip_rk3288_recovery
 # Recovery config
 export RK_CFG_RECOVERY=rockchip_rk3288_recovery
+# ramboot config
+export RK_CFG_RAMBOOT=
 # Pcba config
 export RK_CFG_PCBA=rockchip_rk3288_pcba
 # Build jobs
@@ -33,7 +37,11 @@ export RK_OEM_FS_TYPE=ext2
 export RK_USERDATA_FS_TYPE=ext2
 # Set flash type. support <emmc, nand, spi_nand, spi_nor>
 export RK_STORAGE_TYPE=emmc
-#OEM config: /oem/dueros/aispeech/iflytekSDK/CaeDemo_VAD/smart_voice
+#OEM config
 export RK_OEM_DIR=oem_normal
 #userdata config
 export RK_USERDATA_DIR=userdata_normal
+#misc image
+export RK_MISC=wipe_all-misc.img
+#choose enable distro module
+export RK_DISTRO_MODULE=

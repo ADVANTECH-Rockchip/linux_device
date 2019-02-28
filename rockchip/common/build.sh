@@ -1,17 +1,11 @@
 #!/bin/bash
 
-COMMON_DIR=$(cd `dirname $0`; pwd)
-if [ -h $0 ]
-then
-        CMD=$(readlink $0)
-        COMMON_DIR=$(dirname $CMD)
-fi
-cd $COMMON_DIR
-cd ../../..
-TOP_DIR=$(pwd)
-COMMON_DIR=$TOP_DIR/device/rockchip/common
+CMD=`realpath $0`
+COMMON_DIR=`dirname $CMD`
+TOP_DIR=$(realpath $COMMON_DIR/../../..)
 BOARD_CONFIG=$TOP_DIR/device/rockchip/.BoardConfig.mk
 source $BOARD_CONFIG
+source $TOP_DIR/device/rockchip/common/Version.mk
 
 if [ ! -n "$1" ];then
 	echo "build all and save all as default"
@@ -26,8 +20,10 @@ usage()
 	echo "====USAGE: build.sh modules===="
 	echo "uboot              -build uboot"
 	echo "kernel             -build kernel"
+	echo "modules            -build kernel modules"
 	echo "rootfs             -build default rootfs, currently build buildroot as default"
 	echo "buildroot          -build buildroot rootfs"
+	echo "ramboot            -build ramboot image"
 	echo "yocto              -build yocto rootfs, currently build ros as default"
 	echo "ros                -build ros rootfs"
 	echo "debian             -build debian rootfs"
@@ -37,6 +33,7 @@ usage()
 	echo "cleanall           -clean uboot, kernel, rootfs, recovery"
 	echo "firmware           -pack all the image we need to boot up system"
 	echo "updateimg          -pack update image"
+	echo "otapackage         -pack ab update otapackage image"
 	echo "save               -save images, patches, commands used to debug"
 	echo "default            -build all modules"
 }
@@ -74,6 +71,20 @@ function build_kernel(){
 	fi
 }
 
+function build_modules(){
+	echo "============Start build kernel modules============"
+	echo "TARGET_ARCH          =$RK_ARCH"
+	echo "TARGET_KERNEL_CONFIG =$RK_KERNEL_DEFCONFIG"
+	echo "=================================================="
+	cd $TOP_DIR/kernel && make ARCH=$RK_ARCH $RK_KERNEL_DEFCONFIG && make ARCH=$RK_ARCH modules -j$RK_JOBS && cd -
+	if [ $? -eq 0 ]; then
+		echo "====Build kernel ok!===="
+	else
+		echo "====Build kernel failed!===="
+		exit 1
+	fi
+}
+
 function build_buildroot(){
 	# build buildroot
 	echo "==========Start build buildroot=========="
@@ -88,34 +99,39 @@ function build_buildroot(){
 	fi
 }
 
+function build_ramboot(){
+	# build ramboot image
+        echo "=========Start build ramboot========="
+        echo "TARGET_RAMBOOT_CONFIG=$RK_CFG_RAMBOOT"
+        echo "====================================="
+	/usr/bin/time -f "you take %E to build ramboot" $COMMON_DIR/mk-ramdisk.sh ramboot.img $RK_CFG_RAMBOOT
+	if [ $? -eq 0 ]; then
+		echo "====Build ramboot ok!===="
+	else
+		echo "====Build ramboot failed!===="
+		exit 1
+	fi
+}
+
 function build_rootfs(){
 	build_buildroot
 }
 
 function build_ros(){
-	# build ros
-	echo "======Start build yocto======"
-	echo "YOCTO_MACHINE=$YOCTO_MACHINE"
-	echo "============================="
-	/usr/bin/time -f "you take %E to build ros" $COMMON_DIR/mk-ros.sh $BOARD_CONFIG
-	if [ $? -eq 0 ]; then
-		echo "====Build ros ok!===="
-	else
-		echo "====Build ros failed!===="
-		exit 1
-	fi
+	build_buildroot
 }
 
 function build_yocto(){
-	build_ros
+	echo "we don't support yocto at this time"
 }
 
 function build_debian(){
         # build debian
-        echo "====Start build debian===="
-	echo "TARGET_ARCH          =$RK_ARCH"
-        echo "RK_ENABLE_MODULE     =$RK_ENABLE_MODULE"
-	/usr/bin/time -f "you take %E to build debian" $COMMON_DIR/mk-debian.sh $RK_ENABLE_MODULE
+        echo "===========Start build debian==========="
+	echo "TARGET_ARCH=$RK_ARCH"
+        echo "RK_DISTRO_DEFCONFIG=$RK_DISTRO_DEFCONFIG"
+	echo "========================================"
+	/usr/bin/time -f "you take %E to build debian" $TOP_DIR/distro/make.sh $RK_DISTRO_DEFCONFIG $RK_ARCH
         if [ $? -eq 0 ]; then
                 echo "====Build debian ok!===="
         else
@@ -128,8 +144,20 @@ function build_recovery(){
 	# build recovery
 	echo "==========Start build recovery=========="
 	echo "TARGET_RECOVERY_CONFIG=$RK_CFG_RECOVERY"
+	# debug flag
+	DEBUG_FLAG=$TOP_DIR/buildroot/output/$RK_CFG_RECOVERY/target/
+	if [ ! -d $DEBUG_FLAG ];then
+	    mkdir -p $DEBUG_FLAG
+	fi
+
+	if [ ! -f $DEBUG_FLAG/.rkdebug ];then
+		echo "creat $DEBUG_FLAG !"
+		touch $DEBUG_FLAG/.rkdebug
+	else
+		echo "$DEBUG_FLAG Already exist!"
+	fi
 	echo "========================================"
-	/usr/bin/time -f "you take %E to build recovery" $COMMON_DIR/mk-recovery.sh $BOARD_CONFIG
+	/usr/bin/time -f "you take %E to build recovery" $COMMON_DIR/mk-ramdisk.sh recovery.img $RK_CFG_RECOVERY
 	if [ $? -eq 0 ]; then
 		echo "====Build recovery ok!===="
 	else
@@ -143,7 +171,7 @@ function build_pcba(){
 	echo "==========Start build pcba=========="
 	echo "TARGET_PCBA_CONFIG=$RK_CFG_PCBA"
 	echo "===================================="
-	/usr/bin/time -f "you take %E to build pcba" $COMMON_DIR/mk-pcba.sh $BOARD_CONFIG
+	/usr/bin/time -f "you take %E to build pcba" $COMMON_DIR/mk-ramdisk.sh pcba.img $RK_CFG_PCBA
 	if [ $? -eq 0 ]; then
 		echo "====Build pcba ok!===="
 	else
@@ -162,11 +190,13 @@ function build_all(){
 	echo "TARGET_BUILDROOT_CONFIG=$RK_CFG_BUILDROOT"
 	echo "TARGET_RECOVERY_CONFIG=$RK_CFG_RECOVERY"
 	echo "TARGET_PCBA_CONFIG=$RK_CFG_PCBA"
+	echo "TARGET_RAMBOOT_CONFIG=$RK_CFG_RAMBOOT"
 	echo "============================================"
 	build_uboot
 	build_kernel
 	build_rootfs
 	build_recovery
+	build_ramboot
 }
 
 function clean_all(){
@@ -202,6 +232,24 @@ function build_updateimg(){
 	fi
 }
 
+function build_ota_ab_updateimg(){
+    IMAGE_PATH=$TOP_DIR/rockdev
+    PACK_TOOL_DIR=$TOP_DIR/tools/linux/Linux_Pack_Firmware
+
+    echo "Make ota ab update.img"
+    source_package_file_name=`ls -lh $PACK_TOOL_DIR/rockdev/package-file | awk -F ' ' '{print $NF}'`
+    cd $PACK_TOOL_DIR/rockdev && ln -fs ota-package-file package-file && ./mkupdate.sh && cd -
+    mv $PACK_TOOL_DIR/rockdev/update.img $IMAGE_PATH/update_ota.img
+    cd $PACK_TOOL_DIR/rockdev && ln -fs $source_package_file_name package-file && cd -
+    build_updateimg
+    if [ $? -eq 0 ]; then
+        echo "Make update ota ab image ok!"
+    else
+        echo "Make update ota ab image failed!"
+        exit 1
+    fi
+}
+
 function build_save(){
 	IMAGE_PATH=$TOP_DIR/rockdev
 	DATE=$(date  +%Y%m%d.%H%M)
@@ -233,6 +281,7 @@ function build_all_save(){
 	build_all
 	build_firmware
 	build_updateimg
+	build_ota_ab_updateimg
 	build_save
 }
 #=========================
@@ -244,6 +293,9 @@ if [ $BUILD_TARGET == uboot ];then
 elif [ $BUILD_TARGET == kernel ];then
     build_kernel
     exit 0
+elif [ $BUILD_TARGET == modules ];then
+    build_modules
+    exit 0
 elif [ $BUILD_TARGET == rootfs ];then
     build_rootfs
     exit 0
@@ -251,7 +303,11 @@ elif [ $BUILD_TARGET == buildroot ];then
     build_buildroot
     exit 0
 elif [ $BUILD_TARGET == recovery ];then
+    build_kernel
     build_recovery
+    exit 0
+elif [ $BUILD_TARGET == ramboot ];then
+    build_ramboot
     exit 0
 elif [ $BUILD_TARGET == pcba ];then
     build_pcba
@@ -267,6 +323,9 @@ elif [ $BUILD_TARGET == debian ];then
     exit 0
 elif [ $BUILD_TARGET == updateimg ];then
     build_updateimg
+    exit 0
+elif [ $BUILD_TARGET == otapackage ];then
+    build_ota_ab_updateimg
     exit 0
 elif [ $BUILD_TARGET == all ];then
     build_all
@@ -294,3 +353,4 @@ else
     usage
     exit 1
 fi
+
