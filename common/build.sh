@@ -148,7 +148,8 @@ function build_yocto(){
 }
 
 function build_debian(){
-	cd debian
+	cd rootfs
+	#cd debian
 
 	if [ "$RK_ARCH" == "arm" ]; then
 		ARCH=armhf
@@ -262,7 +263,7 @@ function build_all(){
 	build_kernel
 	build_rootfs ${RK_ROOTFS_SYSTEM:-buildroot}
 	build_recovery
-	build_ramboot
+	#build_ramboot
 }
 
 function build_cleanall(){
