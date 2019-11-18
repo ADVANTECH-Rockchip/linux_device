@@ -199,7 +199,7 @@ function build_rootfs(){
 			;;
 		debian)
 			build_debian
-			ROOTFS_IMG=debian/linaro-rootfs.img
+			ROOTFS_IMG=rootfs/linaro-rootfs.img
 			;;
 		distro)
 			build_distro
@@ -216,8 +216,16 @@ function build_rootfs(){
 	if [ ! -f "$ROOTFS_IMG" ]; then
 		echo "$ROOTFS_IMG not generated?"
 	else
+		echo "========================================"
+		echo "make symbolic link to rockdev"
+		echo "command: ln -rsf $TOP_DIR/$ROOTFS_IMG $RK_ROOTFS_IMG"
+		echo TOP_DIR = $TOP_DIR
+		echo ROOTFS_IMG = $ROOTFS_IMG
+		echo RK_ROOTFS_IMG = $RK_ROOTFS_IMG
+		echo "========================================"
+
 		mkdir -p ${RK_ROOTFS_IMG%/*}
-		ln -rsf $TOP_DIR/$ROOTFS_IMG $RK_ROOTFS_IMG
+		sudo ln -rsf $TOP_DIR/$ROOTFS_IMG $RK_ROOTFS_IMG
 	fi
 }
 
