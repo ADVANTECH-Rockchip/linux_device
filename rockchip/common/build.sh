@@ -416,7 +416,7 @@ for option in ${OPTIONS:-allsave}; do
 			build_rootfs $option
 			;;
 		recovery)
-			build_kernel
+			# build_kernel
 			;&
 		*)
 			eval build_$option || usage

@@ -1,1 +1,1 @@
-rk3288/BoardConfig.mk
+rk3288/BoardConfig_debian_rb04.mk
