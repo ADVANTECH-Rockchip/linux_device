@@ -7,7 +7,7 @@ export RK_UBOOT_DEFCONFIG=ebcrb04a1-2G-rk3288
 # Kernel defconfig
 export RK_KERNEL_DEFCONFIG=rk3288_adv_defconfig 
 # Kernel dts
-export RK_KERNEL_DTS=rk3288-ebcrb04-a1.img
+export RK_KERNEL_DTS=rk3288-ebcrb04-a1
 # boot image type
 export RK_BOOT_IMG=zboot.img
 # kernel image path
