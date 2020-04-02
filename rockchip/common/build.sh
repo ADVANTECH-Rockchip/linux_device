@@ -242,6 +242,21 @@ function build_recovery(){
 	echo "==========Start build recovery=========="
 	echo "TARGET_RECOVERY_CONFIG=$RK_CFG_RECOVERY"
 	echo "========================================"
+
+	# debug flag begin
+	DEBUG_FLAG=$TOP_DIR/buildroot/output/$RK_CFG_RECOVERY/target/
+	if [ ! -d $DEBUG_FLAG ];then
+		mkdir -p $DEBUG_FLAG
+	fi
+
+	if [ ! -f $DEBUG_FLAG/.rkdebug ];then
+		echo "creat $DEBUG_FLAG !"
+		touch $DEBUG_FLAG/.rkdebug
+	else
+		echo "$DEBUG_FLAG/.rkdebug Already exist!"
+	fi
+	# debug flag end
+
 	/usr/bin/time -f "you take %E to build recovery" $COMMON_DIR/mk-ramdisk.sh recovery.img $RK_CFG_RECOVERY
 	if [ $? -eq 0 ]; then
 		echo "====Build recovery ok!===="
