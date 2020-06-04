@@ -5,9 +5,9 @@ export RK_ARCH=arm64
 # Uboot defconfig
 export RK_UBOOT_DEFCONFIG=rk3399
 # Kernel defconfig
-export RK_KERNEL_DEFCONFIG=rockchip_dmssa51_defconfig
+export RK_KERNEL_DEFCONFIG=rockchip_dmssa51_07_defconfig
 # Kernel dts
-export RK_KERNEL_DTS=rk3399-dmssa51
+export RK_KERNEL_DTS=rk3399-dmssa51-07
 # boot image type
 export RK_BOOT_IMG=boot.img
 # kernel image path
