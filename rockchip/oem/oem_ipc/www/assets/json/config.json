@@ -32,16 +32,14 @@
   {
     "name": "Image",
     "items": [
-      "DisplaySettings",
-      "OSDSettings",
-      "PrivacyCover",
-      "ScenarioSwitch"
+      "ImageSettings"
     ]
   },
   {
     "name": "Event",
     "items": [
       "MotionDetect",
+      "IntrusionDetection",
       "AlarmInput",
       "AlarmOutput",
       "Abnormal"

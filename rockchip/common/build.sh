@@ -1,5 +1,8 @@
 #!/bin/bash
 
+export LC_ALL=C
+unset RK_CFG_TOOLCHAIN
+
 CMD=`realpath $0`
 COMMON_DIR=`dirname $CMD`
 TOP_DIR=$(realpath $COMMON_DIR/../../..)
@@ -7,14 +10,59 @@ BOARD_CONFIG=$TOP_DIR/device/rockchip/.BoardConfig.mk
 source $BOARD_CONFIG
 source $TOP_DIR/device/rockchip/common/Version.mk
 
+function usagekernel()
+{
+	echo "cd kernel"
+	echo "make ARCH=$RK_ARCH $RK_KERNEL_DEFCONFIG"
+	echo "make ARCH=$RK_ARCH $RK_KERNEL_DTS.img -j$RK_JOBS"
+}
+
+function usageuboot()
+{
+	echo "cd u-boot"
+	echo "./make.sh $RK_UBOOT_DEFCONFIG"
+}
+
+function usagerootfs()
+{
+	echo "source envsetup.sh $RK_CFG_BUILDROOT"
+
+	case "${RK_ROOTFS_SYSTEM:-buildroot}" in
+		yocto)
+			;;
+		debian)
+			;;
+		distro)
+			;;
+		*)
+			echo "make"
+			;;
+	esac
+}
+
+function usagerecovery()
+{
+	echo "source envsetup.sh $RK_CFG_RECOVERY"
+	echo "$COMMON_DIR/mk-ramdisk.sh recovery.img $RK_CFG_RECOVERY"
+}
+
+function usagemodules()
+{
+	echo "cd kernel"
+	echo "make ARCH=$RK_ARCH $RK_KERNEL_DEFCONFIG"
+	echo "make ARCH=$RK_ARCH modules -j$RK_JOBS"
+}
+
 function usage()
 {
 	echo "Usage: build.sh [OPTIONS]"
 	echo "Available options:"
 	echo "BoardConfig*.mk    -switch to specified board config"
 	echo "uboot              -build uboot"
+	echo "spl                -build spl"
 	echo "kernel             -build kernel"
 	echo "modules            -build kernel modules"
+	echo "toolchain          -build toolchain"
 	echo "rootfs             -build default rootfs, currently build buildroot as default"
 	echo "buildroot          -build buildroot rootfs"
 	echo "ramboot            -build ramboot image"
@@ -51,6 +99,22 @@ function build_uboot(){
 	fi
 }
 
+function build_spl(){
+	echo "============Start build spl============"
+	echo "TARGET_SPL_CONFIG=$RK_SPL_DEFCONFIG"
+	echo "========================================="
+	if [ -f u-boot/*spl.bin ]; then
+		rm u-boot/*spl.bin
+	fi
+	cd u-boot && ./make.sh $RK_SPL_DEFCONFIG && ./make.sh spl-s && cd -
+	if [ $? -eq 0 ]; then
+		echo "====Build spl ok!===="
+	else
+		echo "====Build spl failed!===="
+		exit 1
+	fi
+}
+
 function build_kernel(){
 	echo "============Start build kernel============"
 	echo "TARGET_ARCH          =$RK_ARCH"
@@ -76,6 +140,21 @@ function build_modules(){
 		echo "====Build kernel ok!===="
 	else
 		echo "====Build kernel failed!===="
+		exit 1
+	fi
+}
+
+function build_toolchain(){
+	echo "==========Start build toolchain =========="
+	echo "TARGET_TOOLCHAIN_CONFIG=$RK_CFG_TOOLCHAIN"
+	echo "========================================="
+	[[ $RK_CFG_TOOLCHAIN ]] \
+		&& /usr/bin/time -f "you take %E to build toolchain" $COMMON_DIR/mk-toolchain.sh $BOARD_CONFIG \
+		|| echo "No toolchain step, skip!"
+	if [ $? -eq 0 ]; then
+		echo "====Build toolchain ok!===="
+	else
+		echo "====Build toolchain failed!===="
 		exit 1
 	fi
 }
@@ -132,6 +211,8 @@ function build_yocto(){
 	echo "=========Start build ramboot========="
 	echo "TARGET_MACHINE=$RK_YOCTO_MACHINE"
 	echo "====================================="
+
+	export LANG=en_US.UTF-8 LANGUAGE=en_US.en LC_ALL=en_US.UTF-8
 
 	cd yocto
 	ln -sf $RK_YOCTO_MACHINE.conf build/conf/local.conf
@@ -202,7 +283,7 @@ function build_rootfs(){
 			;;
 		distro)
 			build_distro
-			ROOTFS_IMG=rootfs/linaro-rootfs.img
+			ROOTFS_IMG=yocto/output/images/rootfs.$RK_ROOTFS_TYPE
 			;;
 		*)
 			build_buildroot
@@ -251,15 +332,26 @@ function build_all(){
 	echo "TARGET_ARCH=$RK_ARCH"
 	echo "TARGET_PLATFORM=$RK_TARGET_PRODUCT"
 	echo "TARGET_UBOOT_CONFIG=$RK_UBOOT_DEFCONFIG"
+	echo "TARGET_SPL_CONFIG=$RK_SPL_DEFCONFIG"
 	echo "TARGET_KERNEL_CONFIG=$RK_KERNEL_DEFCONFIG"
 	echo "TARGET_KERNEL_DTS=$RK_KERNEL_DTS"
+	echo "TARGET_TOOLCHAIN_CONFIG=$RK_CFG_TOOLCHAIN"
 	echo "TARGET_BUILDROOT_CONFIG=$RK_CFG_BUILDROOT"
 	echo "TARGET_RECOVERY_CONFIG=$RK_CFG_RECOVERY"
 	echo "TARGET_PCBA_CONFIG=$RK_CFG_PCBA"
 	echo "TARGET_RAMBOOT_CONFIG=$RK_CFG_RAMBOOT"
 	echo "============================================"
-	build_uboot
+
+	#note: if build spl, it will delete loader.bin in uboot directory,
+	# so can not build uboot and spl at the same time.
+	if [ -z $RK_SPL_DEFCONFIG ]; then
+		build_uboot
+	else
+		build_spl
+	fi
+
 	build_kernel
+	build_toolchain && \
 	build_rootfs ${RK_ROOTFS_SYSTEM:-buildroot}
 	build_recovery
 	build_ramboot
@@ -270,7 +362,7 @@ function build_cleanall(){
 	cd $TOP_DIR/u-boot/ && make distclean && cd -
 	cd $TOP_DIR/kernel && make distclean && cd -
 	rm -rf $TOP_DIR/buildroot/output
-	rm -rf $TOP_DIR/yocto/build
+	rm -rf $TOP_DIR/yocto/build/tmp
 	rm -rf $TOP_DIR/distro/output
 	rm -rf $TOP_DIR/debian/binary
 }
@@ -371,7 +463,12 @@ function build_allsave(){
 #=========================
 
 if echo $@|grep -wqE "help|-h"; then
-	usage
+	if [ -n "$2" -a "$(type -t usage$2)" == function ]; then
+		echo "###Current SDK Default [ $2 ] Build Command###"
+		eval usage$2
+	else
+		usage
+	fi
 	exit 0
 fi
 
@@ -380,7 +477,10 @@ for option in ${OPTIONS:-allsave}; do
 	echo "processing option: $option"
 	case $option in
 		BoardConfig*.mk)
-			CONF=$TOP_DIR/device/rockchip/$RK_TARGET_PRODUCT/$option
+			option=$TOP_DIR/device/rockchip/$RK_TARGET_PRODUCT/$option
+			;&
+		*.mk)
+			CONF=$(realpath $option)
 			echo "switching to board: $CONF"
 			if [ ! -f $CONF ]; then
 				echo "not exist!"

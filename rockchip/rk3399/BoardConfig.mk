@@ -7,7 +7,7 @@ export RK_UBOOT_DEFCONFIG=rk3399
 # Kernel defconfig
 export RK_KERNEL_DEFCONFIG=rockchip_linux_defconfig
 # Kernel dts
-export RK_KERNEL_DTS=rk3399-sapphire-excavator-linux
+export RK_KERNEL_DTS=rk3399-evb-ind-lpddr4-linux
 # boot image type
 export RK_BOOT_IMG=boot.img
 # kernel image path
@@ -16,6 +16,8 @@ export RK_KERNEL_IMG=kernel/arch/arm64/boot/Image
 export RK_PARAMETER=parameter.txt
 # Buildroot config
 export RK_CFG_BUILDROOT=rockchip_rk3399
+# Debian 10 config
+export RK_DISTRO_DEFCONFIG=rk3399_defconfig
 # Recovery config
 export RK_CFG_RECOVERY=rockchip_rk3399_recovery
 # ramboot config
